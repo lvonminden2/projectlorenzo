@@ -1,0 +1,35 @@
+function bool(v, dflt) {
+  if (v === undefined || v === '') return dflt;
+  return ['1', 'true', 'yes', 'on'].includes(String(v).toLowerCase());
+}
+
+const env = process.env.NODE_ENV || 'development';
+
+export const config = {
+  env,
+  isProduction: env === 'production',
+  port: Number(process.env.PORT || 3000),
+  // Only fall back to a local database when explicitly developing/testing, so a
+  // hosted deploy with a missing DATABASE_URL fails with a clear message
+  // instead of trying to reach a database inside its own container.
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    (['development', 'test'].includes(process.env.NODE_ENV) ? 'postgres://postgres@localhost:5432/lorenzo' : null),
+  // disable | require (encrypted, certificate not verified) | verify (encrypted + verified).
+  // Unset: chosen automatically from the database host (see db/ssl.js).
+  databaseSsl: process.env.DATABASE_SSL ? String(process.env.DATABASE_SSL).toLowerCase() : null,
+  // Cookies are only sent over HTTPS in production.
+  secureCookies: bool(process.env.SECURE_COOKIES, env === 'production'),
+  // Set when running behind a proxy/load balancer (Railway, Render, Heroku, nginx).
+  trustProxy: bool(process.env.TRUST_PROXY, env === 'production'),
+  sessionIdleMinutes: Number(process.env.SESSION_IDLE_MINUTES || 60 * 8),
+  sessionMaxHours: Number(process.env.SESSION_MAX_HOURS || 24),
+  maxFailedLogins: Number(process.env.MAX_FAILED_LOGINS || 5),
+  lockoutMinutes: Number(process.env.LOCKOUT_MINUTES || 15),
+  // Background map imagery. Only map tiles are fetched from this server; no client data is sent to it.
+  mapTileUrl: process.env.MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  mapAttribution: process.env.MAP_ATTRIBUTION || '© OpenStreetMap contributors',
+  // Where the map opens when there are no entries yet: "lat,lng,zoom".
+  mapDefaultView: process.env.MAP_DEFAULT_VIEW || '39.5,-98.35,4',
+  minPasswordLength: Number(process.env.MIN_PASSWORD_LENGTH || 12),
+};

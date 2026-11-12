@@ -1,0 +1,60 @@
+:root { --bg:#f6f7f9; --fg:#1d2330; --muted:#5d6675; --card:#fff; --line:#d9dde4; --accent:#1f5fbf; --err:#b42318; --ok:#14713a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e8ebf0; --muted:#9aa3b2; --card:#1d2128; --line:#333a45; --accent:#6ea2ff; --err:#ff8a80; --ok:#6fd38f; }
+}
+* { box-sizing: border-box; }
+body { margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
+header h1 { font-size:1.15rem; margin:0; }
+nav { display:flex; flex-wrap:wrap; gap:6px; }
+main { max-width:760px; margin:0 auto; padding:16px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+h2 { margin-top:0; }
+label { display:block; margin:0 0 12px; font-weight:500; }
+label.check { display:flex; gap:8px; align-items:center; font-weight:400; }
+input, select, textarea { display:block; width:100%; margin-top:4px; padding:10px; font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:6px; }
+label.check input { width:auto; margin:0; }
+.row { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0 12px; align-items:end; }
+form.row input, form.row select { margin:0 0 8px; }
+button { font:inherit; padding:10px 14px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; min-height:44px; }
+button.secondary { background:transparent; color:var(--accent); }
+button:disabled { opacity:.6; }
+.location-box { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px; margin-bottom:14px; border:1px dashed var(--line); border-radius:8px; }
+.list { list-style:none; padding:0; margin:0; }
+.list li { border-top:1px solid var(--line); padding:10px 0; }
+.list li button { margin-top:6px; }
+.muted { color:var(--muted); font-size:.9rem; }
+dl { display:grid; grid-template-columns:max-content 1fr; gap:4px 12px; }
+dt { color:var(--muted); }
+dd { margin:0; white-space:pre-wrap; }
+#flash { padding:10px 12px; border-radius:8px; margin-bottom:12px; border:1px solid currentColor; }
+#flash.error { color:var(--err); }
+#flash.ok { color:var(--ok); }
+code { font-size:1rem; user-select:all; }
+
+/* --- records, map, location picker --- */
+main:has(section.wide:not([hidden])) { max-width:1200px; }
+main.narrow { max-width:420px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:14px; }
+.stat { border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+.stat b { display:block; font-size:1.4rem; }
+.filters { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:end; margin-bottom:12px; }
+.filters label { margin:0; flex:1 1 150px; }
+.table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:8px; }
+table { border-collapse:collapse; width:100%; font-size:.92rem; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { white-space:nowrap; color:var(--muted); font-weight:600; background:var(--bg); }
+tbody tr:last-child td { border-bottom:0; }
+tbody tr.clickable { cursor:pointer; }
+tbody tr.clickable:hover { background:var(--bg); }
+td.nowrap { white-space:nowrap; }
+.pager { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:12px; }
+.map { height:260px; border:1px solid var(--line); border-radius:8px; margin-bottom:12px; z-index:0; }
+.map.big { height:min(60vh, 520px); }
+.picker { border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:14px; }
+.picker .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.picker .manual { margin-top:10px; }
+.picker .map { margin-top:8px; }
+.linklike { background:none; border:0; color:var(--accent); padding:0; min-height:0; text-decoration:underline; cursor:pointer; font:inherit; }
+#edit-person-form { margin-top:12px; }
+.leaflet-container { font:inherit; }

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Project Lorenzo Outreach</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Project Lorenzo</h1>
+    <nav id="nav" hidden>
+      <button data-view="intake">New intake</button>
+      <button data-view="records">Records</button>
+      <button data-view="map" data-staff hidden>Map</button>
+      <button data-view="users" data-admin hidden>Users</button>
+      <button id="logout" class="secondary">Log out</button>
+    </nav>
+  </header>
+
+  <main>
+    <div id="flash" role="status" hidden></div>
+
+    <section id="view-password" hidden>
+      <h2>Set a new password</h2>
+      <p>You need to replace your temporary password. Use at least 12 characters.</p>
+      <form id="password-form">
+        <label>Current password <input name="currentPassword" type="password" autocomplete="current-password" required></label>
+        <label>New password <input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>
+        <button type="submit">Save password</button>
+      </form>
+    </section>
+
+    <section id="view-intake" hidden>
+      <h2>New intake</h2>
+      <div id="intake-location"></div>
+      <form id="intake-form">
+        <div class="row">
+          <label>First name <input name="firstName" maxlength="100"></label>
+          <label>Last name <input name="lastName" maxlength="100"></label>
+        </div>
+        <div class="row">
+          <label>Preferred name / nickname <input name="preferredName" maxlength="100"></label>
+          <label>Approx. age <input name="approximateAge" type="number" min="0" max="120"></label>
+        </div>
+        <div class="row">
+          <label>Date of birth <input name="dateOfBirth" type="date"></label>
+          <label>Gender <input name="gender" maxlength="50"></label>
+        </div>
+        <div class="row">
+          <label>Phone <input name="phone" type="tel" maxlength="30"></label>
+          <label>Veteran?
+            <select name="veteranStatus">
+              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+              <option value="unknown">Unknown</option><option value="declined">Declined to say</option>
+            </select>
+          </label>
+        </div>
+        <label>Physical description (if no name given) <textarea name="physicalDescription" rows="2" maxlength="1000"></textarea></label>
+        <label>Needs (comma separated) <input name="needs" placeholder="food, shelter, medical, ID"></label>
+        <label>Where (description) <input name="locationDescription" maxlength="500" placeholder="e.g. bench outside the library"></label>
+        <label>Services provided today (comma separated) <input name="servicesProvided" placeholder="meal, water, hygiene kit"></label>
+        <label>Notes <textarea name="notes" rows="3" maxlength="5000"></textarea></label>
+        <label class="check"><input type="checkbox" name="consentGiven"> Person consented to having their information recorded</label>
+        <button type="submit">Save intake</button>
+      </form>
+    </section>
+
+    <section id="view-records" class="wide" hidden>
+      <h2>Records</h2>
+      <div id="stats" class="stats"></div>
+      <form id="records-form" class="filters">
+        <label>Search <input name="q" placeholder="Name, nickname, description or phone"></label>
+        <label>Need <input name="need" placeholder="e.g. shelter"></label>
+        <label>Veteran
+          <select name="veteranStatus">
+            <option value="">Any</option><option value="yes">Yes</option><option value="no">No</option>
+            <option value="unknown">Unknown</option><option value="declined">Declined</option>
+          </select>
+        </label>
+        <label>Location
+          <select name="hasLocation">
+            <option value="">Any</option><option value="true">Has a location</option><option value="false">No location</option>
+          </select>
+        </label>
+        <label>Sort by
+          <select name="sort">
+            <option value="lastSeen">Last seen</option><option value="name">Name</option>
+            <option value="created">Date entered</option><option value="contacts">Number of contacts</option>
+          </select>
+        </label>
+        <button type="submit">Apply</button>
+      </form>
+      <div class="table-wrap">
+        <table id="records-table">
+          <thead><tr>
+            <th>Name</th><th>Age</th><th>Gender</th><th>Veteran</th><th>Phone</th><th>Needs</th>
+            <th>Contacts</th><th>Last seen</th><th>Last location</th><th>Entered</th><th>Consent</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button type="button" id="records-prev" class="secondary">&larr; Previous</button>
+        <span id="records-count" class="muted"></span>
+        <button type="button" id="records-next" class="secondary">Next &rarr;</button>
+      </div>
+    </section>
+
+    <section id="view-map" class="wide" hidden>
+      <h2>Map of entries</h2>
+      <form id="map-form" class="filters">
+        <label>From <input name="from" type="date"></label>
+        <label>To <input name="to" type="date"></label>
+        <button type="submit">Apply</button>
+        <span id="map-count" class="muted"></span>
+      </form>
+      <div id="map" class="map big"></div>
+      <h3>Entry log</h3>
+      <div class="table-wrap">
+        <table id="log-table">
+          <thead><tr><th>When</th><th>Person</th><th>Location</th><th>Where</th><th>Services</th><th>Recorded by</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-person" hidden>
+      <button type="button" class="secondary" data-view="records">&larr; Back to records</button>
+      <h2 id="person-name"></h2>
+      <dl id="person-details"></dl>
+      <button type="button" id="edit-person-btn" class="secondary" data-staff hidden>Edit details</button>
+      <form id="edit-person-form" hidden>
+        <div class="row">
+          <label>First name <input name="firstName" maxlength="100"></label>
+          <label>Last name <input name="lastName" maxlength="100"></label>
+        </div>
+        <div class="row">
+          <label>Preferred name <input name="preferredName" maxlength="100"></label>
+          <label>Approx. age <input name="approximateAge" type="number" min="0" max="120"></label>
+        </div>
+        <div class="row">
+          <label>Date of birth <input name="dateOfBirth" type="date"></label>
+          <label>Gender <input name="gender" maxlength="50"></label>
+        </div>
+        <div class="row">
+          <label>Phone <input name="phone" type="tel" maxlength="30"></label>
+          <label>Veteran?
+            <select name="veteranStatus">
+              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+              <option value="unknown">Unknown</option><option value="declined">Declined to say</option>
+            </select>
+          </label>
+        </div>
+        <label>Physical description <textarea name="physicalDescription" rows="2" maxlength="1000"></textarea></label>
+        <label>Needs (comma separated) <input name="needs"></label>
+        <label>Notes <textarea name="notes" rows="3" maxlength="10000"></textarea></label>
+        <label class="check"><input type="checkbox" name="consentGiven"> Consent recorded</label>
+        <button type="submit">Save changes</button>
+        <button type="button" id="edit-person-cancel" class="secondary">Cancel</button>
+      </form>
+
+      <h3>Where they have been seen</h3>
+      <div id="person-map" class="map"></div>
+
+      <h3>Log a new contact</h3>
+      <div id="encounter-location"></div>
+      <form id="encounter-form">
+        <label>Where (description) <input name="locationDescription" maxlength="500"></label>
+        <label>Services provided (comma separated) <input name="servicesProvided"></label>
+        <label>Notes <textarea name="notes" rows="2" maxlength="5000"></textarea></label>
+        <button type="submit">Save contact</button>
+      </form>
+      <h3>Contact history</h3>
+      <ul id="encounters" class="list"></ul>
+    </section>
+
+    <section id="view-users" hidden>
+      <h2>Team accounts</h2>
+      <form id="user-form" class="row">
+        <input name="fullName" placeholder="Full name" required aria-label="Full name">
+        <input name="email" type="email" placeholder="Email" required aria-label="Email">
+        <select name="role" aria-label="Role">
+          <option value="volunteer">Volunteer</option><option value="staff">Staff</option><option value="admin">Admin</option>
+        </select>
+        <button type="submit">Add user</button>
+      </form>
+      <ul id="users" class="list"></ul>
+    </section>
+  </main>
+</body>
+</html>
