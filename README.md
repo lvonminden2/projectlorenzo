@@ -95,10 +95,21 @@ createdb lorenzo_test && npm test
 Any Node host with managed PostgreSQL works, such as Railway, Render, Fly.io, or Heroku.
 
 1. Create a PostgreSQL database and set `DATABASE_URL`.
-2. Set `NODE_ENV=production`. This turns on secure cookies, HSTS, DB TLS, and proxy trust. See `.env.example`.
+2. Set `NODE_ENV=production`. This turns on secure cookies, HSTS, and proxy trust. Database TLS is chosen automatically from the host; override it with `DATABASE_SSL` if needed. See `.env.example`.
 3. Start command: `npm start`. Migrations run automatically on boot.
 4. Run `npm run create-admin -- <email> "<name>"` once from the host's shell to create the first admin.
 5. **Always serve over HTTPS.** Phone browsers only allow GPS on HTTPS pages, and the login cookie is HTTPS-only in production.
+
+### Railway
+
+1. In your project, add **PostgreSQL** (New → Database → PostgreSQL), plus this repo as a service.
+2. On the app service, open **Variables** and add:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `NODE_ENV` = `production`
+3. Under **Settings → Networking**, generate a domain. Railway serves it over HTTPS.
+4. After the first successful deploy, open the service's shell and run `npm run create-admin -- you@example.org "Your Name"`.
+
+If the deploy logs say `DATABASE_URL is not set`, step 2 is missing. If they mention SSL or certificates, set `DATABASE_SSL` to `disable` (private-network URL) or `require` (public URL).
 
 ### Operational recommendations
 
