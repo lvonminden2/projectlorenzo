@@ -2,195 +2,318 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
   <title>Project Lorenzo Outreach</title>
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/styles.css">
   <script src="/vendor/leaflet/leaflet.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
-<body>
-  <header>
-    <h1>Project Lorenzo</h1>
-    <nav id="nav" hidden>
-      <button data-view="intake">New intake</button>
-      <button data-view="records">Records</button>
-      <button data-view="map" data-staff hidden>Map</button>
-      <button data-view="users" data-admin hidden>Users</button>
-      <button id="logout" class="secondary">Log out</button>
-    </nav>
+<body class="pl-body">
+  <header class="pl-topbar">
+    <div class="pl-topbar__in">
+      <a class="pl-wordmark" href="#intake" data-view="intake">Project Lorenzo</a>
+      <nav class="pl-nav" id="nav" aria-label="Main" hidden>
+        <a href="#intake" data-view="intake">New intake</a>
+        <a href="#records" data-view="records">Records</a>
+        <a href="#map" data-view="map" data-staff hidden>Map</a>
+        <a href="#team" data-view="users" data-admin hidden>Team</a>
+      </nav>
+      <div class="pl-account" id="account" hidden>
+        <span><b id="account-name"></b> · <span id="account-role"></span></span>
+        <button type="button" class="pl-btn pl-btn--quiet pl-btn--sm" id="theme-btn-top">Theme</button>
+        <button type="button" class="pl-btn pl-btn--quiet pl-btn--sm" id="logout">Sign out</button>
+      </div>
+      <button type="button" class="pl-btn pl-btn--quiet pl-btn--sm pl-menubtn" id="menu-btn" aria-label="Menu" aria-haspopup="dialog" hidden>
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
   </header>
 
-  <main>
-    <div id="flash" role="status" hidden></div>
+  <dialog class="pl-menu" id="menu" aria-label="Menu">
+    <div class="pl-sheet">
+      <div class="pl-sheet__who"><b id="menu-name"></b><br><span class="pl-muted pl-small" id="menu-detail"></span></div>
+      <a href="#team" data-view="users" data-admin hidden>
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.8 3 2.5 3.5 5.2"/></svg>Team accounts</a>
+      <a href="#password" data-view="password">
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>Change my password</a>
+      <button type="button" id="theme-btn">
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span id="theme-label">Theme</span></button>
+      <button type="button" id="logout-menu">
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4M6 12h10"/></svg>Sign out</button>
+      <button type="button" id="menu-close">
+        <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>Close</button>
+    </div>
+  </dialog>
 
-    <section id="view-password" hidden>
-      <h2>Set a new password</h2>
-      <p>You need to replace your temporary password. Use at least 12 characters.</p>
-      <form id="password-form">
-        <label>Current password <input name="currentPassword" type="password" autocomplete="current-password" required></label>
-        <label>New password <input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>
-        <button type="submit">Save password</button>
+  <main class="pl-main" id="main">
+    <div id="flash" hidden></div>
+
+    <!-- ===== Set a new password ===== -->
+    <section id="view-password" class="pl-auth__card" hidden>
+      <form id="password-form" class="pl-card" novalidate>
+        <h1 class="pl-title-2">Set a new password</h1>
+        <p class="pl-lede" id="password-lede">You signed in with a temporary password. Choose your own to continue.</p>
+        <label class="pl-field"><span class="pl-label" id="pw-current-label">Current (temporary) password</span>
+          <span class="pl-pw"><input class="pl-input" name="currentPassword" type="password" autocomplete="current-password" required maxlength="256"><button class="pl-pw__toggle" type="button" aria-pressed="false">Show</button></span></label>
+        <label class="pl-field"><span class="pl-label">New password</span>
+          <span class="pl-pw"><input class="pl-input" name="newPassword" type="password" autocomplete="new-password" required maxlength="256" aria-describedby="pw-reqs pw-hint"><button class="pl-pw__toggle" type="button" aria-pressed="false">Show</button></span></label>
+        <ul class="pl-reqs" id="pw-reqs" aria-live="polite">
+          <li data-req="length">At least 12 characters</li>
+          <li data-req="different">Different from your current password</li>
+          <li data-req="match">Both new passwords match</li>
+        </ul>
+        <span class="pl-hint" id="pw-hint">A short sentence is easy to remember and hard to guess: “warm socks on tuesday”.</span>
+        <label class="pl-field pl-mt"><span class="pl-label">Type the new password again</span>
+          <input class="pl-input" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="256"></label>
+        <div class="pl-row pl-mt">
+          <button type="submit" class="pl-btn pl-btn--primary pl-btn--block">Save password</button>
+          <button type="button" class="pl-btn pl-btn--quiet pl-btn--block" id="password-cancel" hidden>Cancel</button>
+        </div>
       </form>
     </section>
 
+    <!-- ===== New intake ===== -->
     <section id="view-intake" hidden>
-      <h2>New intake</h2>
-      <div id="intake-location"></div>
-      <form id="intake-form">
-        <div class="row">
-          <label>First name <input name="firstName" maxlength="100"></label>
-          <label>Last name <input name="lastName" maxlength="100"></label>
-        </div>
-        <div class="row">
-          <label>Preferred name / nickname <input name="preferredName" maxlength="100"></label>
-          <label>Approx. age <input name="approximateAge" type="number" min="0" max="120"></label>
-        </div>
-        <div class="row">
-          <label>Date of birth <input name="dateOfBirth" type="date"></label>
-          <label>Gender <input name="gender" maxlength="50"></label>
-        </div>
-        <div class="row">
-          <label>Phone <input name="phone" type="tel" maxlength="30"></label>
-          <label>Veteran?
-            <select name="veteranStatus">
-              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
-              <option value="unknown">Unknown</option><option value="declined">Declined to say</option>
-            </select>
-          </label>
-        </div>
-        <label>Physical description (if no name given) <textarea name="physicalDescription" rows="2" maxlength="1000"></textarea></label>
-        <label>Needs (comma separated) <input name="needs" placeholder="food, shelter, medical, ID"></label>
-        <label>Where (description) <input name="locationDescription" maxlength="500" placeholder="e.g. bench outside the library"></label>
-        <label>Services provided today (comma separated) <input name="servicesProvided" placeholder="meal, water, hygiene kit"></label>
-        <label>Notes <textarea name="notes" rows="3" maxlength="5000"></textarea></label>
-        <label class="check"><input type="checkbox" name="consentGiven"> Person consented to having their information recorded</label>
-        <button type="submit">Save intake</button>
-      </form>
-    </section>
+      <div class="pl-pagehead"><div><h1 class="pl-title-1">New intake</h1><p class="pl-lede">Everything is optional except a name, nickname or description.</p></div></div>
+      <div class="pl-stack">
+        <div id="intake-location"></div>
+        <form id="intake-form" novalidate>
+          <div class="pl-card">
+            <div class="pl-banner pl-banner--error" id="intake-error" role="alert" tabindex="-1" hidden>
+              <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+              <div class="pl-banner__body"><b>This entry can’t be saved yet</b>Add a name, nickname or description. <a href="#intake-first">Go to the name fields</a></div>
+            </div>
+            <h2 class="pl-group__title">Who</h2>
+            <div class="pl-grid-2">
+              <label class="pl-field"><span class="pl-label">First name <span class="pl-opt">(optional)</span></span><input class="pl-input" id="intake-first" name="firstName" maxlength="100" autocomplete="off"></label>
+              <label class="pl-field"><span class="pl-label">Last name <span class="pl-opt">(optional)</span></span><input class="pl-input" name="lastName" maxlength="100" autocomplete="off"></label>
+            </div>
+            <label class="pl-field"><span class="pl-label">Preferred name or nickname <span class="pl-opt">(optional)</span></span><input class="pl-input" name="preferredName" maxlength="100" autocomplete="off"></label>
+            <label class="pl-field" data-who-field><span class="pl-label">Physical description <span class="pl-opt">(optional)</span></span>
+              <textarea class="pl-textarea" name="physicalDescription" rows="2" maxlength="1000"></textarea>
+              <span class="pl-hint">Use this when no name is given. Describe what helps the team recognise them, kindly.</span>
+              <span class="pl-error" hidden>Add a name, a nickname, or a short description so the team can recognise this person.</span></label>
 
-    <section id="view-records" class="wide" hidden>
-      <h2>Records</h2>
-      <div id="stats" class="stats"></div>
-      <form id="records-form" class="filters">
-        <label>Search <input name="q" placeholder="Name, nickname, description or phone"></label>
-        <label>Need <input name="need" placeholder="e.g. shelter"></label>
-        <label>Veteran
-          <select name="veteranStatus">
-            <option value="">Any</option><option value="yes">Yes</option><option value="no">No</option>
-            <option value="unknown">Unknown</option><option value="declined">Declined</option>
-          </select>
-        </label>
-        <label>Location
-          <select name="hasLocation">
-            <option value="">Any</option><option value="true">Has a location</option><option value="false">No location</option>
-          </select>
-        </label>
-        <label>Sort by
-          <select name="sort">
-            <option value="lastSeen">Last seen</option><option value="name">Name</option>
-            <option value="created">Date entered</option><option value="contacts">Number of contacts</option>
-          </select>
-        </label>
-        <button type="submit">Apply</button>
-      </form>
-      <div class="table-wrap">
-        <table id="records-table">
-          <thead><tr>
-            <th>Name</th><th>Age</th><th>Gender</th><th>Veteran</th><th>Phone</th><th>Needs</th>
-            <th>Contacts</th><th>Last seen</th><th>Last location</th><th>Entered</th><th>Consent</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="pager">
-        <button type="button" id="records-prev" class="secondary">&larr; Previous</button>
-        <span id="records-count" class="muted"></span>
-        <button type="button" id="records-next" class="secondary">Next &rarr;</button>
+            <div class="pl-group"><h2 class="pl-group__title">About</h2>
+              <div class="pl-grid-2">
+                <label class="pl-field"><span class="pl-label">Approximate age <span class="pl-opt">(optional)</span></span><input class="pl-input" name="approximateAge" type="number" inputmode="numeric" min="0" max="120"></label>
+                <label class="pl-field"><span class="pl-label">Date of birth <span class="pl-opt">(optional)</span></span><input class="pl-input" name="dateOfBirth" type="date"></label>
+              </div>
+              <div class="pl-grid-2">
+                <label class="pl-field"><span class="pl-label">Gender <span class="pl-opt">(optional)</span></span><input class="pl-input" name="gender" maxlength="50" autocomplete="off"><span class="pl-hint">In their own words.</span></label>
+                <label class="pl-field"><span class="pl-label">Phone <span class="pl-opt">(optional)</span></span><input class="pl-input" name="phone" type="tel" maxlength="30" autocomplete="off"></label>
+              </div>
+              <fieldset class="pl-fieldset"><legend class="pl-label">Veteran <span class="pl-opt">(optional)</span></legend>
+                <div class="pl-segment">
+                  <label class="pl-chip"><input type="radio" name="veteranStatus" value="yes"><span>Yes</span></label>
+                  <label class="pl-chip"><input type="radio" name="veteranStatus" value="no"><span>No</span></label>
+                  <label class="pl-chip"><input type="radio" name="veteranStatus" value="unknown"><span>Unknown</span></label>
+                  <label class="pl-chip"><input type="radio" name="veteranStatus" value="declined"><span>Declined</span></label>
+                </div></fieldset>
+              <div class="pl-field" data-chips="needs" data-label="Needs" data-add="Add another need"></div>
+            </div>
+
+            <div class="pl-group"><h2 class="pl-group__title">Today</h2>
+              <label class="pl-field"><span class="pl-label">Where <span class="pl-opt">(optional)</span></span><input class="pl-input" name="locationDescription" maxlength="500" placeholder="e.g. bench outside the library"><span class="pl-hint">What the team would say to find this spot again.</span></label>
+              <div class="pl-field" data-chips="services" data-label="Services provided today" data-add="Add another service"></div>
+              <label class="pl-field"><span class="pl-label">Notes <span class="pl-opt">(optional)</span></span><textarea class="pl-textarea" name="notes" rows="3" maxlength="5000" placeholder="Anything that helps next time. Write as if they’ll read it."></textarea></label>
+            </div>
+
+            <div class="pl-group">
+              <label class="pl-check"><input type="checkbox" name="consentGiven"><span>Person consented to having their information recorded<small>Ask before writing anything down. If they say no, record only what’s needed to bring help back.</small></span></label>
+            </div>
+          </div>
+          <div class="pl-savebar">
+            <button type="submit" class="pl-btn pl-btn--primary">Save intake</button>
+            <button type="reset" class="pl-btn pl-btn--quiet">Start over</button>
+          </div>
+        </form>
       </div>
     </section>
 
-    <section id="view-map" class="wide" hidden>
-      <h2>Map of entries</h2>
-      <form id="map-form" class="filters">
-        <label>From <input name="from" type="date"></label>
-        <label>To <input name="to" type="date"></label>
-        <button type="submit">Apply</button>
-        <span id="map-count" class="muted"></span>
+    <!-- ===== Records ===== -->
+    <section id="view-records" hidden>
+      <div class="pl-pagehead"><h1 class="pl-title-1">Records</h1>
+        <a class="pl-btn pl-btn--secondary pl-btn--sm" href="#intake" data-view="intake">
+          <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New intake</a></div>
+      <ul class="pl-tiles" id="stats" aria-label="Totals"></ul>
+      <form id="records-form" class="pl-filters" role="search" aria-label="Filter records">
+        <label class="pl-field"><span class="pl-label">Search</span>
+          <span class="pl-search"><svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input class="pl-input" name="q" type="search" maxlength="100" placeholder="Name, nickname, description or phone"></span></label>
+        <div class="pl-filters__more">
+          <label class="pl-field"><span class="pl-label">Need</span><input class="pl-input" name="need" list="needs-list" maxlength="100" placeholder="Any need"></label>
+          <label class="pl-field"><span class="pl-label">Veteran</span>
+            <select class="pl-select" name="veteranStatus"><option value="">Any</option><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option><option value="declined">Declined</option></select></label>
+          <label class="pl-field"><span class="pl-label">Location</span>
+            <select class="pl-select" name="hasLocation"><option value="">Any</option><option value="true">Has a location</option><option value="false">No location</option></select></label>
+          <label class="pl-field"><span class="pl-label">Sort by</span>
+            <select class="pl-select" name="sort"><option value="lastSeen">Last seen</option><option value="name">Name</option><option value="created">Date entered</option><option value="contacts">Number of contacts</option></select></label>
+        </div>
+        <button type="submit" class="pl-btn pl-btn--primary">Apply</button>
       </form>
-      <div id="map" class="map big"></div>
-      <h3>Entry log</h3>
-      <div class="table-wrap">
-        <table id="log-table">
-          <thead><tr><th>When</th><th>Person</th><th>Location</th><th>Where</th><th>Services</th><th>Recorded by</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <datalist id="needs-list"></datalist>
+      <p class="pl-resultline" id="records-summary" aria-live="polite"></p>
+      <div id="records-body"></div>
+      <nav class="pl-pager" id="records-pager" aria-label="Pages">
+        <button type="button" id="records-prev" class="pl-btn pl-btn--secondary pl-btn--sm">
+          <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>Previous</button>
+        <span id="records-count" class="pl-pager__info"></span>
+        <button type="button" id="records-next" class="pl-btn pl-btn--secondary pl-btn--sm">Next
+          <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </nav>
     </section>
 
+    <!-- ===== Map ===== -->
+    <section id="view-map" hidden>
+      <div class="pl-pagehead"><h1 class="pl-title-1">Map</h1></div>
+      <form id="map-form" class="pl-filters pl-filters--dates" aria-label="Date range">
+        <label class="pl-field"><span class="pl-label">From</span><input class="pl-input" name="from" type="date"></label>
+        <label class="pl-field"><span class="pl-label">To</span><input class="pl-input" name="to" type="date"></label>
+        <button type="submit" class="pl-btn pl-btn--primary">Apply</button>
+      </form>
+      <div class="pl-mapcount pl-mt">
+        <b id="map-count" aria-live="polite"></b>
+        <span class="pl-legend"><span class="pl-marker pl-marker--gps"></span>GPS</span>
+        <span class="pl-legend"><span class="pl-marker pl-marker--manual"></span>Set manually</span>
+      </div>
+      <div class="pl-mapwrap pl-mt">
+        <div id="map" class="pl-map pl-map--big" role="region" aria-label="Map of entries"></div>
+        <div class="pl-empty" id="map-empty" hidden>
+          <svg class="pl-empty__art" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M24 12 10 17v35l14-5 16 5 14-5V12l-14 5-16-5z"/><path d="M24 12v35M40 17v35"/></svg>
+          <h3>No locations to show for these dates</h3>
+          <p id="map-empty-text"></p>
+        </div>
+      </div>
+      <section class="pl-section">
+        <h2 class="pl-title-2">Entry log</h2>
+        <div id="log-body"></div>
+      </section>
+    </section>
+
+    <!-- ===== Person ===== -->
     <section id="view-person" hidden>
-      <button type="button" class="secondary" data-view="records">&larr; Back to records</button>
-      <h2 id="person-name"></h2>
-      <dl id="person-details"></dl>
-      <button type="button" id="edit-person-btn" class="secondary" data-staff hidden>Edit details</button>
-      <form id="edit-person-form" hidden>
-        <div class="row">
-          <label>First name <input name="firstName" maxlength="100"></label>
-          <label>Last name <input name="lastName" maxlength="100"></label>
-        </div>
-        <div class="row">
-          <label>Preferred name <input name="preferredName" maxlength="100"></label>
-          <label>Approx. age <input name="approximateAge" type="number" min="0" max="120"></label>
-        </div>
-        <div class="row">
-          <label>Date of birth <input name="dateOfBirth" type="date"></label>
-          <label>Gender <input name="gender" maxlength="50"></label>
-        </div>
-        <div class="row">
-          <label>Phone <input name="phone" type="tel" maxlength="30"></label>
-          <label>Veteran?
-            <select name="veteranStatus">
-              <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
-              <option value="unknown">Unknown</option><option value="declined">Declined to say</option>
-            </select>
-          </label>
-        </div>
-        <label>Physical description <textarea name="physicalDescription" rows="2" maxlength="1000"></textarea></label>
-        <label>Needs (comma separated) <input name="needs"></label>
-        <label>Notes <textarea name="notes" rows="3" maxlength="10000"></textarea></label>
-        <label class="check"><input type="checkbox" name="consentGiven"> Consent recorded</label>
-        <button type="submit">Save changes</button>
-        <button type="button" id="edit-person-cancel" class="secondary">Cancel</button>
-      </form>
+      <a class="pl-back" href="#records" data-view="records">
+        <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>Records</a>
+      <div class="pl-person-head">
+        <div><h1 class="pl-person__name" id="person-name"></h1><p class="pl-person__aka" id="person-aka"></p></div>
+        <button type="button" id="edit-person-btn" class="pl-btn pl-btn--secondary pl-btn--sm" data-staff hidden aria-expanded="false" aria-controls="edit-person-form">
+          <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>Edit details</button>
+      </div>
+      <div class="pl-split">
+        <div class="pl-person-col">
+          <section class="pl-card" id="person-card" aria-label="Details"><dl class="pl-facts" id="person-details"></dl></section>
 
-      <h3>Where they have been seen</h3>
-      <div id="person-map" class="map"></div>
+          <form id="edit-person-form" class="pl-card" novalidate hidden aria-labelledby="edit-h">
+            <h2 class="pl-title-3" id="edit-h">Edit details</h2>
+            <div class="pl-grid-2 pl-mt">
+              <label class="pl-field"><span class="pl-label">First name <span class="pl-opt">(optional)</span></span><input class="pl-input" name="firstName" maxlength="100" autocomplete="off"></label>
+              <label class="pl-field"><span class="pl-label">Last name <span class="pl-opt">(optional)</span></span><input class="pl-input" name="lastName" maxlength="100" autocomplete="off"></label>
+            </div>
+            <label class="pl-field"><span class="pl-label">Preferred name or nickname <span class="pl-opt">(optional)</span></span><input class="pl-input" name="preferredName" maxlength="100" autocomplete="off"></label>
+            <label class="pl-field"><span class="pl-label">Physical description <span class="pl-opt">(optional)</span></span><textarea class="pl-textarea" name="physicalDescription" rows="2" maxlength="1000"></textarea></label>
+            <div class="pl-grid-2">
+              <label class="pl-field"><span class="pl-label">Approximate age <span class="pl-opt">(optional)</span></span><input class="pl-input" name="approximateAge" type="number" inputmode="numeric" min="0" max="120"></label>
+              <label class="pl-field"><span class="pl-label">Date of birth <span class="pl-opt">(optional)</span></span><input class="pl-input" name="dateOfBirth" type="date"></label>
+            </div>
+            <div class="pl-grid-2">
+              <label class="pl-field"><span class="pl-label">Gender <span class="pl-opt">(optional)</span></span><input class="pl-input" name="gender" maxlength="50" autocomplete="off"></label>
+              <label class="pl-field"><span class="pl-label">Phone <span class="pl-opt">(optional)</span></span><input class="pl-input" name="phone" type="tel" maxlength="30" autocomplete="off"></label>
+            </div>
+            <fieldset class="pl-fieldset"><legend class="pl-label">Veteran <span class="pl-opt">(optional)</span></legend>
+              <div class="pl-segment">
+                <label class="pl-chip"><input type="radio" name="veteranStatus" value="yes"><span>Yes</span></label>
+                <label class="pl-chip"><input type="radio" name="veteranStatus" value="no"><span>No</span></label>
+                <label class="pl-chip"><input type="radio" name="veteranStatus" value="unknown"><span>Unknown</span></label>
+                <label class="pl-chip"><input type="radio" name="veteranStatus" value="declined"><span>Declined</span></label>
+              </div></fieldset>
+            <div class="pl-field" data-chips="needs" data-label="Needs" data-add="Add another need"></div>
+            <label class="pl-field"><span class="pl-label">Notes <span class="pl-opt">(optional)</span></span><textarea class="pl-textarea" name="notes" rows="3" maxlength="10000"></textarea></label>
+            <div class="pl-group"><label class="pl-check"><input type="checkbox" name="consentGiven"><span>Person consented to having their information recorded</span></label></div>
+            <div class="pl-row pl-mt">
+              <button type="submit" class="pl-btn pl-btn--primary">Save changes</button>
+              <button type="button" id="edit-person-cancel" class="pl-btn pl-btn--quiet">Cancel</button>
+            </div>
+          </form>
 
-      <h3>Log a new contact</h3>
-      <div id="encounter-location"></div>
-      <form id="encounter-form">
-        <label>Where (description) <input name="locationDescription" maxlength="500"></label>
-        <label>Services provided (comma separated) <input name="servicesProvided"></label>
-        <label>Notes <textarea name="notes" rows="2" maxlength="5000"></textarea></label>
-        <button type="submit">Save contact</button>
-      </form>
-      <h3>Contact history</h3>
-      <ul id="encounters" class="list"></ul>
+          <section aria-labelledby="seen-h">
+            <div class="pl-sectionhead"><h2 class="pl-title-2" id="seen-h">Where they’ve been seen</h2>
+              <span class="pl-row"><span class="pl-legend"><span class="pl-marker pl-marker--gps"></span>GPS</span><span class="pl-legend"><span class="pl-marker pl-marker--manual"></span>Manual</span></span></div>
+            <div id="person-map" class="pl-map pl-map--small" role="region" aria-label="Map of where this person has been seen"></div>
+            <p class="pl-small pl-muted" id="person-map-note"></p>
+          </section>
+        </div>
+
+        <div class="pl-person-col">
+          <section aria-labelledby="log-h">
+            <h2 class="pl-title-2 pl-sectionhead" id="log-h">Log a new contact</h2>
+            <div class="pl-stack">
+              <div id="encounter-location"></div>
+              <form id="encounter-form" class="pl-card" novalidate>
+                <label class="pl-field"><span class="pl-label">Where <span class="pl-opt">(optional)</span></span><input class="pl-input" name="locationDescription" maxlength="500"></label>
+                <div class="pl-field" data-chips="services" data-label="Services provided" data-add="Add another service"></div>
+                <label class="pl-field"><span class="pl-label">Notes <span class="pl-opt">(optional)</span></span><textarea class="pl-textarea" name="notes" rows="2" maxlength="5000"></textarea></label>
+                <button type="submit" class="pl-btn pl-btn--primary pl-btn--block pl-mt">Save contact</button>
+              </form>
+            </div>
+          </section>
+          <section aria-labelledby="hist-h">
+            <h2 class="pl-title-2 pl-sectionhead" id="hist-h">Contact history</h2>
+            <ol class="pl-history" id="encounters"></ol>
+          </section>
+        </div>
+      </div>
     </section>
 
+    <!-- ===== Team accounts ===== -->
     <section id="view-users" hidden>
-      <h2>Team accounts</h2>
-      <form id="user-form" class="row">
-        <input name="fullName" placeholder="Full name" required aria-label="Full name">
-        <input name="email" type="email" placeholder="Email" required aria-label="Email">
-        <select name="role" aria-label="Role">
-          <option value="volunteer">Volunteer</option><option value="staff">Staff</option><option value="admin">Admin</option>
-        </select>
-        <button type="submit">Add user</button>
-      </form>
-      <ul id="users" class="list"></ul>
+      <div class="pl-pagehead"><div><h1 class="pl-title-1">Team accounts</h1><p class="pl-lede" id="users-summary"></p></div></div>
+      <div class="pl-split pl-split--team">
+        <div class="pl-stack">
+          <section class="pl-temppw" id="temppw" role="status" aria-labelledby="temppw-h" hidden>
+            <h2 class="pl-temppw__title" id="temppw-h">
+              <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4"/><path d="m10.5 12.5 9-9M16 7l3 3M14 9l2 2"/></svg>
+              <span id="temppw-title">Temporary password</span></h2>
+            <p class="pl-temppw__for" id="temppw-email"></p>
+            <div class="pl-temppw__row">
+              <output class="pl-temppw__code" id="temppw-code" aria-label="Temporary password"></output>
+              <button type="button" class="pl-btn pl-btn--primary" id="temppw-copy">
+                <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>Copy</span></button>
+            </div>
+            <p class="pl-temppw__note"><b>Shown once.</b> Give it to them privately — in person or by phone, not in a group chat. They’ll choose their own password when they first sign in.</p>
+            <div class="pl-row pl-mt"><button type="button" class="pl-btn pl-btn--secondary pl-btn--sm" id="temppw-done">Done, I’ve shared it</button></div>
+          </section>
+
+          <form id="user-form" class="pl-card" novalidate aria-labelledby="add-h">
+            <h2 class="pl-title-3" id="add-h">Add a team member</h2>
+            <label class="pl-field pl-mt"><span class="pl-label">Full name</span><input class="pl-input" name="fullName" required maxlength="200" autocomplete="off"></label>
+            <label class="pl-field"><span class="pl-label">Email</span><input class="pl-input" name="email" type="email" required maxlength="254" autocomplete="off"></label>
+            <fieldset class="pl-fieldset pl-mt"><legend class="pl-label">Role</legend>
+              <div class="pl-segment pl-segment--3">
+                <label class="pl-chip"><input type="radio" name="role" value="volunteer" checked><span>Volunteer</span></label>
+                <label class="pl-chip"><input type="radio" name="role" value="staff"><span>Staff</span></label>
+                <label class="pl-chip"><input type="radio" name="role" value="admin"><span>Admin</span></label>
+              </div>
+              <span class="pl-hint">Volunteer: intake and records. Staff: also the map and editing. Admin: also team accounts.</span></fieldset>
+            <button type="submit" class="pl-btn pl-btn--primary pl-btn--block pl-mt">Add and create temporary password</button>
+          </form>
+        </div>
+        <section aria-labelledby="list-h">
+          <h2 class="pl-title-2 pl-sectionhead" id="list-h">Everyone</h2>
+          <ul class="pl-users" id="users"></ul>
+        </section>
+      </div>
     </section>
   </main>
+
+  <nav class="pl-tabbar" id="tabbar" aria-label="Main" hidden>
+    <a href="#intake" data-view="intake"><svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Intake</span></a>
+    <a href="#records" data-view="records"><svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><span>Records</span></a>
+    <a href="#map" data-view="map" data-staff hidden><svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></a>
+    <a href="#menu" id="tab-more" aria-haspopup="dialog"><svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>More</span></a>
+  </nav>
 </body>
 </html>

@@ -4,23 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
   <title>Sign in – Project Lorenzo</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/login.js" defer></script>
 </head>
-<body>
-  <header><h1>Project Lorenzo</h1></header>
-  <main class="narrow">
-    <div id="flash" role="alert" hidden></div>
-    <section>
-      <h2>Sign in</h2>
-      <p class="muted">Authorized team members only. All access is logged.</p>
-      <form id="login-form">
-        <label>Email <input name="email" type="email" autocomplete="username" required autofocus></label>
-        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Sign in</button>
+<body class="pl-body">
+  <main class="pl-auth">
+    <div class="pl-auth__card">
+      <div class="pl-auth__brand"><span class="pl-wordmark">Project Lorenzo</span><p>Street outreach team</p></div>
+      <form id="login-form" class="pl-card" novalidate>
+        <h1 class="pl-title-2">Sign in</h1>
+        <div id="flash" class="pl-banner pl-banner--error pl-mt" role="alert" hidden>
+          <svg class="pl-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+          <div class="pl-banner__body"><b id="flash-title">Couldn’t sign you in</b><span id="flash-text"></span></div>
+        </div>
+        <label class="pl-field pl-mt"><span class="pl-label">Email</span>
+          <input class="pl-input" name="email" type="email" autocomplete="username" required autofocus maxlength="254"></label>
+        <label class="pl-field"><span class="pl-label">Password</span>
+          <span class="pl-pw"><input class="pl-input" name="password" type="password" autocomplete="current-password" required maxlength="256"><button class="pl-pw__toggle" type="button" aria-pressed="false">Show</button></span></label>
+        <button type="submit" class="pl-btn pl-btn--primary pl-btn--block pl-mt">Sign in</button>
+        <p class="pl-auth__foot">
+          <svg class="pl-icon pl-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+          <span>Authorized team members only. All access is logged.</span></p>
       </form>
-    </section>
+    </div>
   </main>
 </body>
 </html>
