@@ -106,11 +106,27 @@ export const createIndividualSchema = z
 
 export const updateIndividualSchema = z.object(individualFields).strict();
 
+const queryBool = z.enum(['true', 'false']).transform((v) => v === 'true');
+
 export const listIndividualsSchema = z.object({
   q: z.string().trim().max(100).optional(),
+  need: z.string().trim().max(100).optional(),
+  veteranStatus: z.enum(['yes', 'no', 'unknown', 'declined']).optional(),
+  hasLocation: queryBool.optional(),
+  sort: z.enum(['lastSeen', 'name', 'created', 'contacts']).default('lastSeen'),
+  order: z.enum(['asc', 'desc']).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
   offset: z.coerce.number().int().min(0).max(100000).default(0),
 });
+
+export const updateEncounterSchema = z
+  .object({
+    location: locationSchema.nullable().optional(),
+    locationDescription: optText(500),
+    servicesProvided: tagList.optional(),
+    notes: optText(5000),
+  })
+  .strict();
 
 export const listEncountersSchema = z.object({
   from: z.coerce.date().optional(),
@@ -119,7 +135,8 @@ export const listEncountersSchema = z.object({
   maxLat: z.coerce.number().min(-90).max(90).optional(),
   minLng: z.coerce.number().min(-180).max(180).optional(),
   maxLng: z.coerce.number().min(-180).max(180).optional(),
-  limit: z.coerce.number().int().min(1).max(1000).default(200),
+  hasLocation: queryBool.optional(),
+  limit: z.coerce.number().int().min(1).max(2000).default(200),
 });
 
 export const auditQuerySchema = z.object({

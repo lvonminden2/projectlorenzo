@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query, withTransaction } from '../db/pool.js';
 import { audit } from '../audit.js';
-import { asyncHandler, notFound } from '../errors.js';
+import { asyncHandler, notFound, badRequest } from '../errors.js';
 import {
   parse,
   uuidParam,
@@ -10,8 +10,10 @@ import {
   listIndividualsSchema,
   encounterSchema,
   listEncountersSchema,
+  updateEncounterSchema,
 } from '../validation.js';
 import { requireAuth, requireRole } from '../auth.js';
+import { config } from '../config.js';
 
 const router = Router();
 router.use(requireAuth());
@@ -56,6 +58,13 @@ export const toIndividual = (r) => ({
   updatedAt: r.updated_at,
   lastSeenAt: r.last_seen_at,
   encounterCount: r.encounter_count !== undefined ? Number(r.encounter_count) : undefined,
+  lastLocation:
+    r.last_latitude === undefined
+      ? undefined
+      : r.last_latitude === null
+        ? null
+        : { latitude: r.last_latitude, longitude: r.last_longitude },
+  lastLocationDescription: r.last_location_description,
 });
 
 export const toEncounter = (r) => ({
@@ -103,32 +112,97 @@ async function insertEncounter(db, individualId, userId, e) {
   return rows[0];
 }
 
+// Settings the web client needs (map imagery source). No secrets.
+router.get('/config', (_req, res) => {
+  const [lat, lng, zoom] = config.mapDefaultView.split(',').map(Number);
+  res.json({
+    map: {
+      tileUrl: config.mapTileUrl,
+      attribution: config.mapAttribution,
+      defaultView: { latitude: lat || 0, longitude: lng || 0, zoom: zoom || 3 },
+    },
+  });
+});
+
+// Headline numbers for the records view.
+router.get(
+  '/stats',
+  asyncHandler(async (_req, res) => {
+    const { rows } = await query(
+      `SELECT
+         (SELECT count(*) FROM individuals WHERE deleted_at IS NULL) AS individuals,
+         (SELECT count(*) FROM individuals WHERE deleted_at IS NULL AND created_at > now() - interval '30 days') AS new_30d,
+         count(*) AS encounters,
+         count(*) FILTER (WHERE e.occurred_at > now() - interval '7 days') AS encounters_7d,
+         count(*) FILTER (WHERE e.occurred_at > now() - interval '30 days') AS encounters_30d,
+         count(*) FILTER (WHERE e.latitude IS NULL) AS encounters_without_location
+       FROM encounters e JOIN individuals i ON i.id = e.individual_id AND i.deleted_at IS NULL`,
+    );
+    const r = rows[0];
+    res.json({
+      individuals: Number(r.individuals),
+      newIndividuals30d: Number(r.new_30d),
+      encounters: Number(r.encounters),
+      encounters7d: Number(r.encounters_7d),
+      encounters30d: Number(r.encounters_30d),
+      encountersWithoutLocation: Number(r.encounters_without_location),
+    });
+  }),
+);
+
+const SORTS = {
+  lastSeen: ['e.last_seen_at', 'desc'],
+  name: ["lower(coalesce(i.last_name, i.first_name, i.preferred_name, ''))", 'asc'],
+  created: ['i.created_at', 'desc'],
+  contacts: ['e.encounter_count', 'desc'],
+};
+
 // Search / list
 router.get(
   '/individuals',
   asyncHandler(async (req, res) => {
-    const { q, limit, offset } = parse(listIndividualsSchema, req.query);
-    const params = [limit, offset];
-    let where = 'i.deleted_at IS NULL';
-    if (q) {
-      params.push(`%${q.toLowerCase().replace(/[\\%_]/g, (c) => '\\' + c)}%`);
-      where += ` AND (lower(coalesce(i.first_name,'')) LIKE $3 OR lower(coalesce(i.last_name,'')) LIKE $3
-                  OR lower(coalesce(i.preferred_name,'')) LIKE $3
-                  OR lower(coalesce(i.first_name,'') || ' ' || coalesce(i.last_name,'')) LIKE $3
-                  OR coalesce(i.phone,'') LIKE $3)`;
+    const f = parse(listIndividualsSchema, req.query);
+    const params = [f.limit, f.offset];
+    const where = ['i.deleted_at IS NULL'];
+    const add = (sql, v) => {
+      params.push(v);
+      where.push(sql.replaceAll('?', `$${params.length}`));
+    };
+    if (f.q) {
+      add(
+        `(lower(coalesce(i.first_name,'')) LIKE ? OR lower(coalesce(i.last_name,'')) LIKE ?
+          OR lower(coalesce(i.preferred_name,'')) LIKE ?
+          OR lower(coalesce(i.first_name,'') || ' ' || coalesce(i.last_name,'')) LIKE ?
+          OR lower(coalesce(i.physical_description,'')) LIKE ?
+          OR coalesce(i.phone,'') LIKE ?)`,
+        `%${f.q.toLowerCase().replace(/[\\%_]/g, (c) => '\\' + c)}%`,
+      );
     }
+    if (f.need) add('EXISTS (SELECT 1 FROM unnest(i.needs) n WHERE lower(n) = ?)', f.need.toLowerCase());
+    if (f.veteranStatus) add('i.veteran_status = ?', f.veteranStatus);
+    if (f.hasLocation !== undefined) where.push(`l.latitude IS ${f.hasLocation ? 'NOT ' : ''}NULL`);
+    const [sortCol, defaultOrder] = SORTS[f.sort];
+    const order = (f.order || defaultOrder).toUpperCase();
     const { rows } = await query(
-      `SELECT i.*, e.last_seen_at, e.encounter_count, count(*) OVER () AS total
+      `SELECT i.*, u.full_name AS created_by_name, e.last_seen_at, e.encounter_count,
+              l.latitude AS last_latitude, l.longitude AS last_longitude,
+              l.location_description AS last_location_description,
+              count(*) OVER () AS total
          FROM individuals i
+         LEFT JOIN users u ON u.id = i.created_by
          LEFT JOIN LATERAL (
            SELECT max(occurred_at) AS last_seen_at, count(*) AS encounter_count
              FROM encounters WHERE individual_id = i.id) e ON TRUE
-        WHERE ${where}
-        ORDER BY e.last_seen_at DESC NULLS LAST, i.created_at DESC
+         LEFT JOIN LATERAL (
+           SELECT latitude, longitude, location_description
+             FROM encounters WHERE individual_id = i.id
+            ORDER BY (latitude IS NULL), occurred_at DESC LIMIT 1) l ON TRUE
+        WHERE ${where.join(' AND ')}
+        ORDER BY ${sortCol} ${order} NULLS LAST, i.created_at DESC
         LIMIT $1 OFFSET $2`,
       params,
     );
-    await audit(req, 'individuals_searched', { details: { q: q ? '[redacted]' : null, results: rows.length } });
+    await audit(req, 'individuals_searched', { details: { filtered: !!(f.q || f.need || f.veteranStatus), results: rows.length } });
     res.json({ total: rows[0] ? Number(rows[0].total) : 0, individuals: rows.map(toIndividual) });
   }),
 );
@@ -267,6 +341,7 @@ router.get(
     if (f.maxLat !== undefined) add('e.latitude <= ?', f.maxLat);
     if (f.minLng !== undefined) add('e.longitude >= ?', f.minLng);
     if (f.maxLng !== undefined) add('e.longitude <= ?', f.maxLng);
+    if (f.hasLocation !== undefined) where.push(`e.latitude IS ${f.hasLocation ? 'NOT ' : ''}NULL`);
     vals.push(f.limit);
     const { rows } = await query(
       `SELECT e.*, u.full_name AS recorded_by_name,
@@ -281,6 +356,47 @@ router.get(
     );
     await audit(req, 'encounters_listed', { details: { results: rows.length } });
     res.json({ encounters: rows.map(toEncounter) });
+  }),
+);
+
+// Correct an entry, e.g. add or fix its location after the fact. Staff and above.
+router.patch(
+  '/encounters/:id',
+  requireRole('staff'),
+  asyncHandler(async (req, res) => {
+    const { id } = parse(uuidParam, req.params);
+    const input = parse(updateEncounterSchema, req.body);
+    const sets = [];
+    const vals = [id];
+    const set = (col, v) => {
+      vals.push(v);
+      sets.push(`${col} = $${vals.length}`);
+    };
+    if (input.location !== undefined) {
+      const loc = input.location;
+      set('latitude', loc?.latitude ?? null);
+      set('longitude', loc?.longitude ?? null);
+      set('location_accuracy_m', loc?.accuracyMeters ?? null);
+      set('location_source', loc ? loc.source : 'unavailable');
+    }
+    if (input.locationDescription !== undefined) set('location_description', input.locationDescription);
+    if (input.servicesProvided !== undefined) set('services_provided', input.servicesProvided);
+    if (input.notes !== undefined) set('notes', input.notes);
+    if (!sets.length) throw badRequest('Nothing to update');
+    const { rows } = await query(
+      `UPDATE encounters e SET ${sets.join(', ')}
+        WHERE e.id = $1
+          AND EXISTS (SELECT 1 FROM individuals i WHERE i.id = e.individual_id AND i.deleted_at IS NULL)
+        RETURNING e.*`,
+      vals,
+    );
+    if (!rows[0]) throw notFound('Entry not found');
+    await audit(req, 'encounter_updated', {
+      entityType: 'encounter',
+      entityId: id,
+      details: { individualId: rows[0].individual_id, fields: Object.keys(input) },
+    });
+    res.json({ encounter: toEncounter(rows[0]) });
   }),
 );
 

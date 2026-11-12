@@ -13,7 +13,20 @@ import userRoutes from './routes/users.js';
 import individualRoutes from './routes/individuals.js';
 import auditRoutes from './routes/audit.js';
 
-const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const publicDir = path.join(rootDir, 'public'); // sign-in page and shared assets only
+const appDir = path.join(rootDir, 'app'); // the outreach app itself: served only to signed-in users
+const leafletDir = path.join(rootDir, 'node_modules', 'leaflet', 'dist');
+
+function tileOrigin() {
+  try {
+    const u = new URL(config.mapTileUrl.replace('{s}', 'a'));
+    const host = config.mapTileUrl.includes('{s}') ? u.host.replace(/^a\./, '*.') : u.host;
+    return `${u.protocol}//${host}`;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Cross-site request forgery protection. Session cookies are SameSite=Strict,
@@ -54,7 +67,7 @@ export function createApp() {
           'default-src': ["'self'"],
           'script-src': ["'self'"],
           'style-src': ["'self'"],
-          'img-src': ["'self'", 'data:'],
+          'img-src': ["'self'", 'data:', ...(tileOrigin() ? [tileOrigin()] : [])],
           'connect-src': ["'self'"],
           'frame-ancestors': ["'none'"],
           'form-action': ["'self'"],
@@ -105,7 +118,32 @@ export function createApp() {
   api.use((_req, _res, next) => next(new HttpError(404, 'Not found')));
   app.use('/api', api);
 
-  app.use(express.static(publicDir, { index: 'index.html', extensions: ['html'] }));
+  // ---- Pages -------------------------------------------------------------
+  // Only the sign-in page and its styling are public. The app's own pages and
+  // scripts are served only to a signed-in user; everyone else is sent to /login.
+  const pages = express.Router();
+  pages.use(cookieParser());
+  pages.use(loadSession);
+  const noStore = (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  };
+  pages.get('/login', noStore, (req, res) => {
+    if (req.user) return res.redirect('/');
+    res.sendFile(path.join(publicDir, 'login.html'));
+  });
+  pages.get('/', noStore, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    res.sendFile(path.join(appDir, 'index.html'));
+  });
+  pages.get('/app.js', noStore, (req, res, next) => {
+    if (!req.user) return next(new HttpError(401, 'Authentication required'));
+    res.sendFile(path.join(appDir, 'app.js'));
+  });
+  app.use(pages);
+  app.use('/vendor/leaflet', express.static(leafletDir, { index: false, maxAge: '7d' }));
+  app.use(express.static(publicDir, { index: false }));
+  app.use((_req, _res, next) => next(new HttpError(404, 'Not found')));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, _next) => {

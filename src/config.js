@@ -26,5 +26,10 @@ export const config = {
   sessionMaxHours: Number(process.env.SESSION_MAX_HOURS || 24),
   maxFailedLogins: Number(process.env.MAX_FAILED_LOGINS || 5),
   lockoutMinutes: Number(process.env.LOCKOUT_MINUTES || 15),
+  // Background map imagery. Only map tiles are fetched from this server; no client data is sent to it.
+  mapTileUrl: process.env.MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  mapAttribution: process.env.MAP_ATTRIBUTION || '© OpenStreetMap contributors',
+  // Where the map opens when there are no entries yet: "lat,lng,zoom".
+  mapDefaultView: process.env.MAP_DEFAULT_VIEW || '39.5,-98.35,4',
   minPasswordLength: Number(process.env.MIN_PASSWORD_LENGTH || 12),
 };

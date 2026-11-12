@@ -12,10 +12,14 @@ A secure backend (plus a simple mobile web page) for the Project Lorenzo outreac
   | `admin` | All of the above, plus manage accounts, delete records, and read the audit log |
 - **Intake**: record a person's name or nickname, approximate age, DOB, phone, veteran status, needs, notes, and consent. Name is optional; a physical description is enough.
 - **Location tracking**: each intake and each follow-up contact is saved as an *encounter* with latitude, longitude, GPS accuracy, a text description of the place, the services provided, and who recorded it.
-- **Search and history** for each person, showing where and when they were seen.
+- **Manual location**: besides GPS, a location can be set by tapping a map to drop a pin or by typing coordinates. Staff can add or correct the location of an existing entry.
+- **Records view**: a table of everyone on record with age, veteran status, needs, number of contacts, last seen, last location and who entered them, with search, filters, sorting, paging and headline counts. Staff can edit a person's details.
+- **Map** (staff and admins): every entry with a location plotted on a map, with a date filter and a log of all entries underneath. Each person's page also shows a map of where they have been seen.
 - **Audit log** of logins, failed logins, record views, creates, edits, and deletes.
 
 ## Security measures
+
+- **Nothing but the sign-in page is public.** The app's pages and scripts are only served to a signed-in user, and every API endpoint requires a valid session.
 
 - Passwords hashed with **Argon2id**. Admins never choose or see passwords. New accounts and resets get a random temporary password that the user **must change at first login**. New passwords need at least 12 characters and cannot contain the user's name or email.
 - **Server-side sessions**: the cookie is HttpOnly, SameSite=Strict, and Secure in production, and only a hash of the token is stored. Deactivating a user, resetting their password, or changing their role signs them out immediately. Sessions end after 8 hours idle or 24 hours total.
@@ -35,13 +39,15 @@ All endpoints are under `/api` and use JSON.
 | POST | `/auth/logout` | any | |
 | GET | `/auth/me` | any | current user |
 | POST | `/auth/change-password` | any | `{currentPassword, newPassword}` |
-| GET | `/individuals?q=&limit=&offset=` | volunteer | search/list |
+| GET | `/individuals?q=&need=&veteranStatus=&hasLocation=&sort=&limit=&offset=` | volunteer | search/list |
+| GET | `/stats` | volunteer | headline counts |
 | POST | `/individuals` | volunteer | intake (see below) |
 | GET | `/individuals/:id` | volunteer | person + contact history |
 | PATCH | `/individuals/:id` | staff | edit fields |
 | DELETE | `/individuals/:id` | admin | soft delete |
 | POST | `/individuals/:id/encounters` | volunteer | log a follow-up contact with location |
-| GET | `/encounters?from=&to=&minLat=&maxLat=&minLng=&maxLng=` | staff | all contacts, for maps and reports |
+| GET | `/encounters?from=&to=&hasLocation=&minLat=&maxLat=&minLng=&maxLng=` | staff | all contacts, for the map and reports |
+| PATCH | `/encounters/:id` | staff | add or correct an entry's location, description, services, notes |
 | GET/POST | `/users` | admin | list / create (returns a temporary password once) |
 | PATCH | `/users/:id` | admin | `{fullName?, role?, isActive?}` |
 | POST | `/users/:id/reset-password` | admin | returns a new temporary password |
@@ -110,6 +116,10 @@ Any Node host with managed PostgreSQL works, such as Railway, Render, Fly.io, or
 4. After the first successful deploy, open the service's shell and run `npm run create-admin -- you@example.org "Your Name"`.
 
 If the deploy logs say `DATABASE_URL is not set`, step 2 is missing. If they mention SSL or certificates, set `DATABASE_SSL` to `disable` (private-network URL) or `require` (public URL).
+
+### Map imagery
+
+The map background comes from OpenStreetMap's public tile server by default. Only the map area being viewed is requested from it; no names or records are sent. For heavier use, point `MAP_TILE_URL` at a paid tile provider. `MAP_DEFAULT_VIEW` (`lat,lng,zoom`) sets where the map opens before there are any entries.
 
 ### Operational recommendations
 
