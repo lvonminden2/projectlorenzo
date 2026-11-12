@@ -18,6 +18,9 @@ async function migrateWithRetry(attempts = 10) {
         /timeout|terminated/i.test(err.message);
       if (!retryable || i >= attempts) {
         console.error(`FATAL: could not prepare the database: ${err.message}`);
+        if (err.code === 'ECONNREFUSED' && /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(config.databaseUrl)) {
+          console.error('Hint: DATABASE_URL points at this machine. On a hosting service, set it to your database\'s URL.');
+        }
         if (/SSL|certificate/i.test(err.message)) {
           console.error('Hint: set DATABASE_SSL to disable, require, or verify to match your database (see .env.example).');
         }

@@ -9,7 +9,12 @@ export const config = {
   env,
   isProduction: env === 'production',
   port: Number(process.env.PORT || 3000),
-  databaseUrl: process.env.DATABASE_URL || (env === 'production' ? null : 'postgres://postgres@localhost:5432/lorenzo'),
+  // Only fall back to a local database when explicitly developing/testing, so a
+  // hosted deploy with a missing DATABASE_URL fails with a clear message
+  // instead of trying to reach a database inside its own container.
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    (['development', 'test'].includes(process.env.NODE_ENV) ? 'postgres://postgres@localhost:5432/lorenzo' : null),
   // disable | require (encrypted, certificate not verified) | verify (encrypted + verified).
   // Unset: chosen automatically from the database host (see db/ssl.js).
   databaseSsl: process.env.DATABASE_SSL ? String(process.env.DATABASE_SSL).toLowerCase() : null,

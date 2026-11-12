@@ -4,8 +4,10 @@ import { resolveSsl } from './ssl.js';
 
 if (!config.databaseUrl) {
   console.error(
-    'FATAL: DATABASE_URL is not set. Add a PostgreSQL database and set DATABASE_URL ' +
-      '(on Railway: add a variable DATABASE_URL = ${{Postgres.DATABASE_URL}}).',
+    'FATAL: DATABASE_URL is not set, so the app has no database to connect to.\n' +
+      '  On Railway: add a PostgreSQL database to the project, then on this app service open\n' +
+      '  Variables and add DATABASE_URL = ${{Postgres.DATABASE_URL}} and redeploy.\n' +
+      '  Locally: export DATABASE_URL=postgres://postgres@localhost:5432/lorenzo (or use npm run dev).',
   );
   process.exit(1);
 }
